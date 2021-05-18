@@ -10,6 +10,7 @@
 #include <QVBoxLayout>
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
+#include <sensor_msgs/Image.h>
 #include <tf/transform_broadcaster.h>
 #include <vector>
 
@@ -32,7 +33,7 @@ CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
     layout_h->addWidget(enable_check_);
     // topic name
     layout_h->addWidget(new QLabel("topic:"));
-    topic_edit_ = new QLineEdit("/camera_plugin/camera_info");
+    topic_edit_ = new QLineEdit("/camera_plugin");
     layout_h->addWidget(topic_edit_);
     // parent frame_id
     layout_h->addWidget(new QLabel("parent_frame:"));
@@ -104,6 +105,7 @@ CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
 CameraInfoPanel::~CameraInfoPanel()
 {
   if (camera_info_publisher_) camera_info_publisher_.shutdown();
+  if (image_publisher_) image_publisher_.shutdown();
 }
 
 void CameraInfoPanel::tick()
@@ -118,6 +120,7 @@ void CameraInfoPanel::tick()
   if (!enable_check_->isChecked()) {
     if (camera_info_publisher_) {
       camera_info_publisher_.shutdown();
+      image_publisher_.shutdown();
       interective_marker_ = nullptr;
       setEditorEnable(true);
     }
@@ -131,7 +134,8 @@ void CameraInfoPanel::tick()
 
       if (topic_name != "") {
         {
-          camera_info_publisher_ = nh_.advertise<sensor_msgs::CameraInfo>(topic_name, 10);
+          camera_info_publisher_ = nh_.advertise<sensor_msgs::CameraInfo>(topic_name + "/camera_info", 10);
+          image_publisher_ = nh_.advertise<sensor_msgs::Image>(topic_name + "/image_raw", 10);
           setEditorEnable(false);
 
           interective_marker_ = std::make_shared<InteMarker>("camera_info_plugins/marker", parent_frame_edit_->text().toStdString(), true);
@@ -147,6 +151,21 @@ void CameraInfoPanel::tick()
     camera_info_publisher_.publish(msg);
     msg_label_->setText(msgToText(msg).c_str());
   }
+
+  if (image_publisher_) {
+    auto info = makeCameraInfoMsg();
+    sensor_msgs::Image msg;
+    msg.height = info.height;
+    msg.width = info.width;
+    msg.step = msg.width;
+    msg.is_bigendian = true;
+    msg.header = info.header;
+    msg.encoding = "mono8";
+    msg.data.resize(msg.height * msg.width);
+
+    image_publisher_.publish(msg);
+  }
+
   if (interective_marker_) {
     tf::Transform t = interective_marker_->getTransform();
     static tf::TransformBroadcaster br;
@@ -172,7 +191,7 @@ void CameraInfoPanel::load(const rviz::Config& config)
   if (config.mapGetString("ParentFrame", &tmp_text)) parent_frame_edit_->setText(tmp_text);
   if (config.mapGetString("CameraFrame", &tmp_text)) camera_frame_edit_->setText(tmp_text);
 
-  if (topic_edit_->text() == "") topic_edit_->setText("/camera_plugin/camera_info");
+  if (topic_edit_->text() == "") topic_edit_->setText("/camera_plugin");
   if (parent_frame_edit_->text() == "") parent_frame_edit_->setText("world");
   if (camera_frame_edit_->text() == "") camera_frame_edit_->setText("/camera_plugin");
 }

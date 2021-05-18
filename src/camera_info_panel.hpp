@@ -44,6 +44,7 @@ public:
   ros::NodeHandle nh_;
   // The ROS publisher for the command velocity.
   ros::Publisher camera_info_publisher_;
+  ros::Publisher image_publisher_;
 
   std::vector<Resolution> reso_options;
 
