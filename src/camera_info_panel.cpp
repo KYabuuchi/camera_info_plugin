@@ -10,6 +10,7 @@
 #include <QVBoxLayout>
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 #include <vector>
 
 namespace camera_info_plugins
@@ -148,6 +149,9 @@ void CameraInfoPanel::tick()
   }
   if (interective_marker_) {
     tf::Transform t = interective_marker_->getTransform();
+    static tf::TransformBroadcaster br;
+    auto stamped = tf::StampedTransform(t, ros::Time::now(), parent_frame_edit_->text().toStdString(), camera_frame_edit_->text().toStdString());
+    br.sendTransform(stamped);
   }
 }
 
