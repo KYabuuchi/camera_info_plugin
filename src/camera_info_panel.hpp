@@ -15,6 +15,7 @@
 #include <QSlider>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <sensor_msgs/CameraInfo.h>
 
 namespace camera_info_plugins
 {
@@ -49,14 +50,14 @@ public:
   QLineEdit* topic_edit_;
   QLineEdit* frame_edit_;
 
-  QLineEdit* max1_edit_;
-  QLineEdit* max2_edit_;
-
   QSlider* focal_slider_;
   QLabel* focal_label_;
 
   QRadioButton* radio_[4];
 
   std::string pub_frame_;
+
+private:
+  sensor_msgs::CameraInfo makeCameraInfoMsg();
 };
 }  // namespace camera_info_plugins
