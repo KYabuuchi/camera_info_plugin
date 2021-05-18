@@ -52,6 +52,12 @@ CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
     radio_[0]->setChecked(true);
     //
     layout->addLayout(layout_h);
+
+    // ====================
+    // Grouping radio button
+    QButtonGroup* group = new QButtonGroup();
+    for (int i = 0; i < 4; i++)
+      group->addButton(radio_[i]);
   }
 
   {
@@ -69,15 +75,19 @@ CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
     layout->addLayout(layout_h);
   }
 
+  {
+    // ====================
+    QHBoxLayout* layout_h = new QHBoxLayout;
+    // label
+    msg_label_ = new QLabel("");
+    layout_h->addWidget(msg_label_);
+    layout->addLayout(layout_h);
+  }
+
+
   // ====================
   setLayout(layout);
 
-
-  // ====================
-  // Grouping radio button
-  QButtonGroup* group = new QButtonGroup();
-  for (int i = 0; i < 4; i++)
-    group->addButton(radio_[i]);
 
   // timer callback
   QTimer* output_timer = new QTimer(this);
@@ -93,6 +103,12 @@ CameraInfoPanel::~CameraInfoPanel()
 
 void CameraInfoPanel::tick()
 {
+  {
+    std::string str = std::to_string(focal_slider_->value());
+    focal_label_->setText(str.c_str());
+  }
+
+
   if (!ros::ok()) return;
 
   if (!enable_check_->isChecked()) {
@@ -119,7 +135,9 @@ void CameraInfoPanel::tick()
   }
 
   if (camera_info_publisher_) {
-    camera_info_publisher_.publish(makeCameraInfoMsg());
+    auto msg = makeCameraInfoMsg();
+    camera_info_publisher_.publish(msg);
+    msg_label_->setText(msgToText(msg).c_str());
   }
 }
 
@@ -140,28 +158,50 @@ void CameraInfoPanel::load(const rviz::Config& config)
 
 sensor_msgs::CameraInfo CameraInfoPanel::makeCameraInfoMsg()
 {
+  const float F = static_cast<float>(focal_slider_->value());
+  float rx, ry;
+  for (int i = 0; i < 4; i++) {
+    if (!radio_[i]->isChecked()) continue;
+    rx = reso_options.at(i).x;
+    ry = reso_options.at(i).y;
+  }
+
+  const double FX = F;
+  const double FY = F;
+  const double RX = rx;
+  const double RY = ry;
+  const double CX = RX / 2;
+  const double CY = RY / 2;
+
+  static int seq = 0;
+
   sensor_msgs::CameraInfo msg;
   msg.header.frame_id = frame_edit_->text().toStdString();
   msg.header.stamp = ros::Time::now();
-  msg.header.seq = 0;
+  msg.header.seq = seq++;
 
   msg.binning_x = 0;
   msg.binning_y = 0;
-  msg.height = 240;
-  msg.width = 320;
+  msg.height = RY;
+  msg.width = RX;
   msg.roi = sensor_msgs::RegionOfInterest();
 
   msg.distortion_model = "plumb_bob";
   msg.D = std::vector<double>{0, 0, 0, 0, 0};
 
-  const double FX = 100;
-  const double FY = 160;
-  const double CX = 100;
-  const double CY = 120;
   msg.K = boost::array<double, 9>{FX, 0, CX, 0, FY, CY, 0, 0, 1};
   msg.P = boost::array<double, 12>{FX, 0, CX, 0, 0, FY, CY, 0, 0, 0, 1, 0};
 
   return msg;
+}
+
+std::string CameraInfoPanel::msgToText(const sensor_msgs::CameraInfo& msg)
+{
+  std::stringstream ss;
+  ss << "stamp: " << msg.header.stamp << "\n";
+  ss << "seq: " << msg.header.seq << "\n";
+  ss << "frame_id: " << msg.header.frame_id << "\n";
+  return ss.str();
 }
 
 }  // namespace camera_info_plugins

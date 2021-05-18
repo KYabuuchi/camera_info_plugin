@@ -53,11 +53,14 @@ public:
   QSlider* focal_slider_;
   QLabel* focal_label_;
 
+  QLabel* msg_label_;
+
   QRadioButton* radio_[4];
 
   std::string pub_frame_;
 
 private:
   sensor_msgs::CameraInfo makeCameraInfoMsg();
+  std::string msgToText(const sensor_msgs::CameraInfo& msg);
 };
 }  // namespace camera_info_plugins
