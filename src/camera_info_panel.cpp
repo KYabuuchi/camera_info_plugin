@@ -10,64 +10,91 @@
 #include <QVBoxLayout>
 #include <pluginlib/class_list_macros.h>
 #include <ros/ros.h>
+#include <vector>
+
+#include <sensor_msgs/CameraInfo.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Int32.h>
-#include <vector>
 
 namespace camera_info_plugins
 {
-constexpr int SLIDER_MAX = 50;
+constexpr int SLIDER_MAX = 1000;
 
 CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
 {
+  reso_options.emplace_back("320x240", 320, 240);
+  reso_options.emplace_back("640x480", 640, 480);
+  reso_options.emplace_back("800x600", 800, 600);
+  reso_options.emplace_back("1280x720", 1280, 720);
+
   QVBoxLayout* layout = new QVBoxLayout;
 
-  QHBoxLayout* layout_1st = new QHBoxLayout;
-  enable_check_ = new QCheckBox("Publish");
-  layout_1st->addWidget(enable_check_);
-  layout_1st->addWidget(new QLabel("Topic:"));
-  topic_edit_ = new QLineEdit("se3");
-  layout_1st->addWidget(topic_edit_);
-  layout->addLayout(layout_1st);
-
-  QHBoxLayout* layout_3rd = new QHBoxLayout;
-  layout_3rd->addWidget(new QLabel("tra max:"));
-  max1_edit_ = new QLineEdit("1");
-  layout_3rd->addWidget(max1_edit_);
-  layout_3rd->addWidget(new QLabel("rot max:"));
-  max2_edit_ = new QLineEdit("3.14");
-  layout_3rd->addWidget(max2_edit_);
-  layout->addLayout(layout_3rd);
-
-  QHBoxLayout* layout_4th = new QHBoxLayout;
-  for (int i = 0; i < 4; i++) {
-    radio_[i] = new QRadioButton(std::to_string(i).c_str());
-    layout_4th->addWidget(radio_[i]);
+  {
+    // ====================
+    // 1st line
+    QHBoxLayout* layout_1st = new QHBoxLayout;
+    enable_check_ = new QCheckBox("Publish");
+    layout_1st->addWidget(enable_check_);
+    // topic name
+    layout_1st->addWidget(new QLabel("TopicName:"));
+    topic_edit_ = new QLineEdit("/camera/camera_info");
+    layout_1st->addWidget(topic_edit_);
+    // frame_id
+    layout_1st->addWidget(new QLabel("FrameId:"));
+    frame_edit_ = new QLineEdit("/camera_plugin");
+    layout_1st->addWidget(frame_edit_);
+    //
+    layout->addLayout(layout_1st);
   }
-  radio_[0]->setChecked(true);
-  layout->addLayout(layout_4th);
 
-  for (int i = 0; i < 6; i++) {
+  {
+    // ====================
+    // 2nd line
+    QHBoxLayout* layout_3rd = new QHBoxLayout;
+    layout_3rd->addWidget(new QLabel("OBSOLETE"));
+    max1_edit_ = new QLineEdit("100");
+    layout_3rd->addWidget(max1_edit_);
+    layout_3rd->addWidget(new QLabel("OBSOLETE"));
+    max2_edit_ = new QLineEdit("3.14");
+    layout_3rd->addWidget(max2_edit_);
+    layout->addLayout(layout_3rd);
+  }
+
+  {
+    // ====================
+    // 3rd line
+    QHBoxLayout* layout_4th = new QHBoxLayout;
+    for (int i = 0; i < reso_options.size(); i++) {
+      const Resolution& reso = reso_options.at(i);
+      radio_[i] = new QRadioButton(reso.label.c_str());
+      layout_4th->addWidget(radio_[i]);
+    }
+    radio_[0]->setChecked(true);
+    //
+    layout->addLayout(layout_4th);
+  }
+
+  // ====================
+  // 4th line
+  {
     QHBoxLayout* layout_ith = new QHBoxLayout;
-
-    se3_label_[i] = new QLabel("");
-    layout_ith->addWidget(se3_label_[i]);
-
-    se3_slider_[i] = new QSlider(Qt::Orientation::Horizontal);
-    se3_slider_[i]->setRange(-SLIDER_MAX, SLIDER_MAX);
-    layout_ith->addWidget(se3_slider_[i]);
-
-    button_[i] = new QPushButton("clear");
-    layout_ith->addWidget(button_[i]);
-    connect(button_[i], &QPushButton::released, [=]() {
-      se3_slider_[i]->setValue(0);
-    });
-
+    // label
+    focal_label_ = new QLabel("100");
+    layout_ith->addWidget(focal_label_);
+    // slider
+    focal_slider_ = new QSlider(Qt::Orientation::Horizontal);
+    focal_slider_->setRange(0, SLIDER_MAX);
+    focal_slider_->setValue(SLIDER_MAX / 2);
+    layout_ith->addWidget(focal_slider_);
+    //
     layout->addLayout(layout_ith);
   }
 
+  // ====================
   setLayout(layout);
 
+
+  // ====================
   // Grouping radio button
   QButtonGroup* group = new QButtonGroup();
   for (int i = 0; i < 4; i++)
@@ -77,16 +104,12 @@ CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
   QTimer* output_timer = new QTimer(this);
   connect(output_timer, SIGNAL(timeout()), this, SLOT(tick()));
   output_timer->start(100);
-
-  // Publisher
-  mode_publisher_ = nh_.advertise<std_msgs::Int32>("mode", 10);
 }
 
 
 CameraInfoPanel::~CameraInfoPanel()
 {
-  if (se3_publisher_) se3_publisher_.shutdown();
-  if (mode_publisher_) mode_publisher_.shutdown();
+  if (camera_info_publisher_) camera_info_publisher_.shutdown();
 }
 
 void CameraInfoPanel::tick()
@@ -97,26 +120,12 @@ void CameraInfoPanel::tick()
   std::vector<float> se3_value;
   std::vector<std::string> prefix = {"tx", "ty", "tz", "rx", "ry", "rz"};
 
-  for (int i = 0; i < 6; i++) {
-    int tick = se3_slider_[i]->value();
-    float value = static_cast<float>(tick) / static_cast<float>(SLIDER_MAX);
-
-    if (i < 3)
-      value *= tra_max;
-    else
-      value *= rot_max;
-
-    se3_value.push_back(value);
-    std::string str = prefix[i] + ": " + std::to_string(value);
-    se3_label_[i]->setText(str.c_str());
-  }
-
   if (!ros::ok()) return;
 
 
   if (!enable_check_->isChecked()) {
-    if (se3_publisher_) {
-      se3_publisher_.shutdown();
+    if (camera_info_publisher_) {
+      camera_info_publisher_.shutdown();
       topic_edit_->setEnabled(true);
     }
     return;
@@ -124,11 +133,11 @@ void CameraInfoPanel::tick()
 
   if (enable_check_->isChecked()) {
 
-    if (!se3_publisher_) {
+    if (!camera_info_publisher_) {
       std::string topic_name = topic_edit_->text().toStdString();
       if (topic_name != "") {
         {
-          se3_publisher_ = nh_.advertise<std_msgs::Float32MultiArray>(topic_name, 10);
+          camera_info_publisher_ = nh_.advertise<std_msgs::Float32MultiArray>(topic_name, 10);
           topic_edit_->setEnabled(false);
         }
       } else {
@@ -136,18 +145,10 @@ void CameraInfoPanel::tick()
       }
     }
 
-    if (se3_publisher_) {
-      std_msgs::Float32MultiArray msg;
-      msg.data = se3_value;
-      se3_publisher_.publish(msg);
+    if (camera_info_publisher_) {
+      sensor_msgs::CameraInfo msg;
+      camera_info_publisher_.publish(msg);
     }
-  }
-  // publish mode
-  {
-    std_msgs::Int32 msg;
-    for (int i = 0; i < 4; i++)
-      if (radio_[i]->isChecked()) msg.data = i;
-    mode_publisher_.publish(msg);
   }
 }
 

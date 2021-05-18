@@ -9,7 +9,6 @@
     <buildtool_depend>catkin</buildtool_depend>
     <depend>roscpp</depend>
     <depend>tf</depend>
-    <depend>pcl_ros</depend>
     <depend>std_msgs</depend>
     <depend>rviz</depend>
 

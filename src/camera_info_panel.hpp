@@ -18,6 +18,12 @@
 
 namespace camera_info_plugins
 {
+struct Resolution {
+  Resolution(const std::string& label, int x, int y) : label(label), x(x), y(y) {}
+  std::string label;
+  int x, y;
+};
+
 class CameraInfoPanel : public rviz::Panel
 {
   Q_OBJECT
@@ -35,18 +41,19 @@ public:
   // The ROS node handle.
   ros::NodeHandle nh_;
   // The ROS publisher for the command velocity.
-  ros::Publisher se3_publisher_;
-  ros::Publisher mode_publisher_;
+  ros::Publisher camera_info_publisher_;
+
+  std::vector<Resolution> reso_options;
 
   QCheckBox* enable_check_;
   QLineEdit* topic_edit_;
+  QLineEdit* frame_edit_;
 
   QLineEdit* max1_edit_;
   QLineEdit* max2_edit_;
 
-  QSlider* se3_slider_[6];
-  QLabel* se3_label_[6];
-  QPushButton* button_[6];
+  QSlider* focal_slider_;
+  QLabel* focal_label_;
 
   QRadioButton* radio_[4];
 
