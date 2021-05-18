@@ -10,7 +10,6 @@ using namespace interactive_markers;
 
 class InteMarker
 {
-
 public:
   InteMarker(const std::string& marker_name, const std::string& frame_id, bool fix_axis = false);
 

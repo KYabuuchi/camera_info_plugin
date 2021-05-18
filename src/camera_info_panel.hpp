@@ -47,11 +47,14 @@ public:
 
   std::vector<Resolution> reso_options;
 
-  std::shared_ptr<InteMarker> intmarker = nullptr;
+  std::shared_ptr<InteMarker> interective_marker_ = nullptr;
+
+  QButtonGroup* edit_group_;
 
   QCheckBox* enable_check_;
   QLineEdit* topic_edit_;
-  QLineEdit* frame_edit_;
+  QLineEdit* parent_frame_edit_;
+  QLineEdit* camera_frame_edit_;
 
   QSlider* focal_slider_;
   QLabel* focal_label_;
@@ -65,5 +68,7 @@ public:
 private:
   sensor_msgs::CameraInfo makeCameraInfoMsg();
   std::string msgToText(const sensor_msgs::CameraInfo& msg);
+
+  void setEditorEnable(bool enable);
 };
 }  // namespace camera_info_plugins

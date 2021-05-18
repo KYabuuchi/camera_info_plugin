@@ -18,8 +18,6 @@ constexpr int SLIDER_MAX = 1000;
 
 CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
 {
-  intmarker = std::make_shared<InteMarker>("hoge/marker", "world", true);
-
   reso_options.emplace_back("320x240", 320, 240);
   reso_options.emplace_back("640x480", 640, 480);
   reso_options.emplace_back("800x600", 800, 600);
@@ -35,10 +33,14 @@ CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
     layout_h->addWidget(new QLabel("topic:"));
     topic_edit_ = new QLineEdit("/camera_plugin/camera_info");
     layout_h->addWidget(topic_edit_);
-    // frame_id
-    layout_h->addWidget(new QLabel("frame_id:"));
-    frame_edit_ = new QLineEdit("/camera_plugin");
-    layout_h->addWidget(frame_edit_);
+    // parent frame_id
+    layout_h->addWidget(new QLabel("parent_frame:"));
+    parent_frame_edit_ = new QLineEdit("world");
+    layout_h->addWidget(parent_frame_edit_);
+    // camera frame_id
+    layout_h->addWidget(new QLabel("camera_frame:"));
+    camera_frame_edit_ = new QLineEdit("/camera_plugin");
+    layout_h->addWidget(camera_frame_edit_);
     //
     layout->addLayout(layout_h);
   }
@@ -110,13 +112,13 @@ void CameraInfoPanel::tick()
     focal_label_->setText(str.c_str());
   }
 
-
   if (!ros::ok()) return;
 
   if (!enable_check_->isChecked()) {
     if (camera_info_publisher_) {
       camera_info_publisher_.shutdown();
-      topic_edit_->setEnabled(true);
+      interective_marker_ = nullptr;
+      setEditorEnable(true);
     }
     return;
   }
@@ -125,10 +127,13 @@ void CameraInfoPanel::tick()
 
     if (!camera_info_publisher_) {
       std::string topic_name = topic_edit_->text().toStdString();
+
       if (topic_name != "") {
         {
           camera_info_publisher_ = nh_.advertise<sensor_msgs::CameraInfo>(topic_name, 10);
-          topic_edit_->setEnabled(false);
+          setEditorEnable(false);
+
+          interective_marker_ = std::make_shared<InteMarker>("camera_info_plugins/marker", parent_frame_edit_->text().toStdString(), true);
         }
       } else {
         enable_check_->setChecked(false);
@@ -141,12 +146,17 @@ void CameraInfoPanel::tick()
     camera_info_publisher_.publish(msg);
     msg_label_->setText(msgToText(msg).c_str());
   }
+  if (interective_marker_) {
+    tf::Transform t = interective_marker_->getTransform();
+  }
 }
 
 void CameraInfoPanel::save(rviz::Config config) const
 {
   rviz::Panel::save(config);
   config.mapSetValue("Topic", topic_edit_->text());
+  config.mapSetValue("ParentFrame", parent_frame_edit_->text());
+  config.mapSetValue("CameraFrame", camera_frame_edit_->text());
 }
 
 void CameraInfoPanel::load(const rviz::Config& config)
@@ -155,7 +165,12 @@ void CameraInfoPanel::load(const rviz::Config& config)
 
   QString tmp_text;
   if (config.mapGetString("Topic", &tmp_text)) topic_edit_->setText(tmp_text);
+  if (config.mapGetString("ParentFrame", &tmp_text)) parent_frame_edit_->setText(tmp_text);
+  if (config.mapGetString("CameraFrame", &tmp_text)) camera_frame_edit_->setText(tmp_text);
+
   if (topic_edit_->text() == "") topic_edit_->setText("/camera_plugin/camera_info");
+  if (parent_frame_edit_->text() == "") parent_frame_edit_->setText("world");
+  if (camera_frame_edit_->text() == "") camera_frame_edit_->setText("/camera_plugin");
 }
 
 sensor_msgs::CameraInfo CameraInfoPanel::makeCameraInfoMsg()
@@ -178,7 +193,7 @@ sensor_msgs::CameraInfo CameraInfoPanel::makeCameraInfoMsg()
   static int seq = 0;
 
   sensor_msgs::CameraInfo msg;
-  msg.header.frame_id = frame_edit_->text().toStdString();
+  msg.header.frame_id = camera_frame_edit_->text().toStdString();
   msg.header.stamp = ros::Time::now();
   msg.header.seq = seq++;
 
@@ -208,6 +223,13 @@ std::string CameraInfoPanel::msgToText(const sensor_msgs::CameraInfo& msg)
     ss << k << " ";
   ss << "\n";
   return ss.str();
+}
+
+void CameraInfoPanel::setEditorEnable(bool enable)
+{
+  topic_edit_->setEnabled(enable);
+  parent_frame_edit_->setEnabled(enable);
+  camera_frame_edit_->setEnabled(enable);
 }
 
 }  // namespace camera_info_plugins
