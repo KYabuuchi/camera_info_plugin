@@ -18,6 +18,8 @@ constexpr int SLIDER_MAX = 1000;
 
 CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
 {
+  intmarker = std::make_shared<InteMarker>("hoge/marker", "world", true);
+
   reso_options.emplace_back("320x240", 320, 240);
   reso_options.emplace_back("640x480", 640, 480);
   reso_options.emplace_back("800x600", 800, 600);
@@ -201,6 +203,10 @@ std::string CameraInfoPanel::msgToText(const sensor_msgs::CameraInfo& msg)
   ss << "stamp: " << msg.header.stamp << "\n";
   ss << "seq: " << msg.header.seq << "\n";
   ss << "frame_id: " << msg.header.frame_id << "\n";
+  ss << "K: ";
+  for (auto k : msg.K)
+    ss << k << " ";
+  ss << "\n";
   return ss.str();
 }
 

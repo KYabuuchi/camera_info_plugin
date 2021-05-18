@@ -6,6 +6,7 @@
 #include <string>
 #endif
 
+#include "interactive_marker.hpp"
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -45,6 +46,8 @@ public:
   ros::Publisher camera_info_publisher_;
 
   std::vector<Resolution> reso_options;
+
+  std::shared_ptr<InteMarker> intmarker = nullptr;
 
   QCheckBox* enable_check_;
   QLineEdit* topic_edit_;

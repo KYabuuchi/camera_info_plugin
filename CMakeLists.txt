@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   rviz
   roscpp
   tf
+  visualization_msgs
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -22,6 +23,7 @@ include_directories(
 )
 add_library(${PROJECT_NAME}
   src/camera_info_panel.cpp
+  src/interective_marker.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
