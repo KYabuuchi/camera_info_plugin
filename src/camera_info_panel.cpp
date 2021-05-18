@@ -1,11 +1,10 @@
-#include "camera_info_plugin.hpp"
+#include "camera_info_panel.hpp"
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPainter>
 #include <QRadioButton>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -15,11 +14,11 @@
 #include <std_msgs/Int32.h>
 #include <vector>
 
-namespace se3test
+namespace camera_info_plugins
 {
 constexpr int SLIDER_MAX = 50;
 
-Se3Panel::Se3Panel(QWidget* parent) : rviz::Panel(parent)
+CameraInfoPanel::CameraInfoPanel(QWidget* parent) : rviz::Panel(parent)
 {
   QVBoxLayout* layout = new QVBoxLayout;
 
@@ -84,13 +83,13 @@ Se3Panel::Se3Panel(QWidget* parent) : rviz::Panel(parent)
 }
 
 
-Se3Panel::~Se3Panel()
+CameraInfoPanel::~CameraInfoPanel()
 {
   if (se3_publisher_) se3_publisher_.shutdown();
   if (mode_publisher_) mode_publisher_.shutdown();
 }
 
-void Se3Panel::tick()
+void CameraInfoPanel::tick()
 {
   const float tra_max = max1_edit_->text().toFloat();
   const float rot_max = max2_edit_->text().toFloat();
@@ -152,7 +151,7 @@ void Se3Panel::tick()
   }
 }
 
-void Se3Panel::save(rviz::Config config) const
+void CameraInfoPanel::save(rviz::Config config) const
 {
   rviz::Panel::save(config);
   config.mapSetValue("Topic", topic_edit_->text());
@@ -160,7 +159,7 @@ void Se3Panel::save(rviz::Config config) const
   config.mapSetValue("max2", max2_edit_->text());
 }
 
-void Se3Panel::load(const rviz::Config& config)
+void CameraInfoPanel::load(const rviz::Config& config)
 {
   rviz::Panel::load(config);
 
@@ -179,6 +178,6 @@ void Se3Panel::load(const rviz::Config& config)
   if (max2_edit_->text() == "")
     max2_edit_->setText("3.14");
 }
-}  // namespace se3test
+}  // namespace camera_info_plugins
 
-PLUGINLIB_EXPORT_CLASS(se3test::Se3Panel, rviz::Panel)
+PLUGINLIB_EXPORT_CLASS(camera_info_plugins::CameraInfoPanel, rviz::Panel)

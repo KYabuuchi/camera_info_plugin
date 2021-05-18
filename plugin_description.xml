@@ -1,5 +1,5 @@
-<library path="lib/libcamera_info_plugin">
-  <class name="se3_test/se3_panel" type="se3test::Se3Panel" base_class_type="rviz::Panel">
+<library path="lib/libcamera_info_plugins">
+  <class name="camera_info_plugins/camera_info_panel" type="camera_info_plugins::CameraInfoPanel" base_class_type="rviz::Panel">
     <description>camera info publisher</description>
   </class>
 </library>

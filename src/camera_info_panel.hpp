@@ -16,14 +16,14 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-namespace se3test
+namespace camera_info_plugins
 {
-class Se3Panel : public rviz::Panel
+class CameraInfoPanel : public rviz::Panel
 {
   Q_OBJECT
 public:
-  Se3Panel(QWidget* parent = 0);
-  ~Se3Panel();
+  CameraInfoPanel(QWidget* parent = 0);
+  ~CameraInfoPanel();
 
   virtual void load(const rviz::Config& config);
   virtual void save(rviz::Config config) const;
@@ -52,4 +52,4 @@ public:
 
   std::string pub_frame_;
 };
-}  // namespace se3test
+}  // namespace camera_info_plugins
