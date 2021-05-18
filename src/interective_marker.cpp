@@ -25,6 +25,10 @@ InteMarker::~InteMarker()
 Marker InteMarker::makeBox(const InteractiveMarker& msg)
 {
   Marker marker;
+  marker.pose.orientation.x = 0;
+  marker.pose.orientation.y = 0;
+  marker.pose.orientation.z = 0;
+  marker.pose.orientation.w = 1;
   marker.type = Marker::CUBE;
   marker.scale.x = msg.scale * 0.45;
   marker.scale.y = msg.scale * 0.45;
@@ -50,7 +54,6 @@ void InteMarker::resetAllCallback(const InteractiveMarkerFeedbackConstPtr& feedb
 {
   ROS_INFO("Reset all");
   geometry_msgs::Pose pose;
-  pose.orientation.w = 1;
   server->setPose(feedback->marker_name, pose);
   server->applyChanges();
 
@@ -64,7 +67,6 @@ void InteMarker::resetRotateCallback(const InteractiveMarkerFeedbackConstPtr& fe
   pose.orientation.x = 0;
   pose.orientation.y = 0;
   pose.orientation.z = 0;
-  pose.orientation.w = 1;
   server->setPose(feedback->marker_name, pose);
   server->applyChanges();
 
@@ -92,12 +94,6 @@ void InteMarker::actionCallback(const InteractiveMarkerFeedbackConstPtr& feedbac
   transform.setRotation({q.x, q.y, q.z, q.w});
 }
 
-#define SET_ORIENTATION(control, W, X, Y, Z) \
-  control.orientation.w = W;                 \
-  control.orientation.x = X;                 \
-  control.orientation.y = Y;                 \
-  control.orientation.z = Z;
-
 InteractiveMarker InteMarker::makeMarker(std::string name, const std::string& frame_id, bool fix_axis)
 {
   InteractiveMarker int_marker;
@@ -113,7 +109,7 @@ InteractiveMarker InteMarker::makeMarker(std::string name, const std::string& fr
 
   {
     // 6軸の位置操作の機能を追加
-    SET_ORIENTATION(control, 1, 1, 0, 0)
+    tf::quaternionTFToMsg(tf::Quaternion(1.0, 0.0, 0.0, 1.0).normalize(), control.orientation);
     control.name = "rotate_x";
     control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
     int_marker.controls.push_back(control);
@@ -121,7 +117,7 @@ InteractiveMarker InteMarker::makeMarker(std::string name, const std::string& fr
     control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
     int_marker.controls.push_back(control);
 
-    SET_ORIENTATION(control, 1, 0, 1, 0)
+    tf::quaternionTFToMsg(tf::Quaternion(0.0, 1.0, 0.0, 1.0).normalize(), control.orientation);
     control.name = "rotate_z";
     control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
     int_marker.controls.push_back(control);
@@ -129,7 +125,7 @@ InteractiveMarker InteMarker::makeMarker(std::string name, const std::string& fr
     control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
     int_marker.controls.push_back(control);
 
-    SET_ORIENTATION(control, 1, 0, 0, 1)
+    tf::quaternionTFToMsg(tf::Quaternion(0.0, 0.0, 1.0, 1.0).normalize(), control.orientation);
     control.name = "rotate_y";
     control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
     int_marker.controls.push_back(control);
@@ -139,7 +135,7 @@ InteractiveMarker InteMarker::makeMarker(std::string name, const std::string& fr
   }
 
 
-  control.markers.push_back(makeBox(int_marker));
+  // control.markers.push_back(makeBox(int_marker));
   int_marker.controls.push_back(control);
 
   return int_marker;
