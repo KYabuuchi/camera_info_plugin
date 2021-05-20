@@ -25,10 +25,6 @@ InteMarker::~InteMarker()
 Marker InteMarker::makeBox(const InteractiveMarker& msg)
 {
   Marker marker;
-  marker.pose.orientation.x = 0;
-  marker.pose.orientation.y = 0;
-  marker.pose.orientation.z = 0;
-  marker.pose.orientation.w = 1;
   marker.type = Marker::CUBE;
   marker.scale.x = msg.scale * 0.45;
   marker.scale.y = msg.scale * 0.45;

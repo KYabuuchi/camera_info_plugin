@@ -1,0 +1,1 @@
+- publish sensor_msgs/camera_info
